@@ -205,4 +205,4 @@ M: object finish-request drop t ;
 
 GENERIC: keep-alive? ( resource -- ? )
 
-M: object keep-alive? t ;
+M: object keep-alive? drop t ;

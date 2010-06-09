@@ -2,12 +2,12 @@ USING: accessors calendar calendar.format combinators
 continuations formatting fry http.machine.data
 http.machine.resource http.machine.states http.machine.util
 kernel locals math math.order namespaces sequences strings 
-combinators.short-circuit ;
+combinators.short-circuit arrays ;
 IN: http.machine.flow
 
 GENERIC: decide ( resource d -- )
 
-: handle-request ( request resource -- )
+: handle-request ( request resource -- response )
     [  
         [ machine-request set ] dip
         <machine-response> machine-response set
@@ -15,7 +15,7 @@ GENERIC: decide ( resource d -- )
         response 
     ] with-scope ;
 
-: handle-response ( request resource -- response )
+: handle-response ( request resource -- ) 2drop ;
 
 <PRIVATE
 

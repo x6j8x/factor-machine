@@ -1,5 +1,5 @@
 USING: accessors assocs combinators kernel namespaces calendar calendar.format 
-io.encodings.utf8 ;
+io.encodings.utf8 arrays ;
 FROM: http => request response ;
 IN: http.machine.data
 
@@ -7,7 +7,7 @@ SINGLETONS: static stream ;
 
 UNION: body-option static stream ;
 
-TUPLE: body { option body-option } content ;
+TUPLE: body { option body-option initial: stream } content ;
 
 TUPLE: request-state
     socket peer ;
@@ -18,14 +18,15 @@ TUPLE: machine-request
     app-root state metadata body ;
 
 TUPLE: machine-response
-    version code reason headers cookies body ;
+    version code reason headers cookies encoding body ;
 
 : <machine-response> ( -- response )
     machine-response new
     "1.1" >>version
     500 >>code
     H{ } clone >>headers
-    H{ } clone >>cookies ;
+    H{ } clone >>cookies
+    utf8 >>encoding ;
 
 : <machine-request> ( -- request )
     machine-request new 
@@ -68,17 +69,5 @@ TUPLE: machine-response
 
 : do-redirect? ( -- ? )
     f ;
-
-TUPLE: machine-response < response ;
-
-: <machine-response> ( -- response )
-    machine-response new 
-    "1.1" >>version 
-    500 >>code
-    H{ } clone >>headers
-    now timestamp>http-string "date" set-header
-    "Factor http.machine" "server" set-header
-    utf8 >>content-encoding 
-    V{ } clone >>cookies ;
 
 : response ( -- response ) machine-response get ; inline
