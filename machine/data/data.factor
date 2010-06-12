@@ -1,6 +1,5 @@
 USING: accessors assocs combinators kernel namespaces calendar calendar.format 
 io.encodings.utf8 arrays ;
-FROM: http => request response ;
 IN: http.machine.data
 
 SINGLETONS: static stream ;
@@ -35,6 +34,8 @@ TUPLE: machine-response
 
 : request ( -- request ) machine-request get ; inline
 
+: response ( -- response ) machine-response get ; inline
+
 : >machine-request ( request -- machine-request )
     [ <machine-request> ] dip
     {
@@ -67,7 +68,7 @@ TUPLE: machine-response
 : set-header ( request/response value key -- request/response )
     pick headers>> set-at ; inline
 
+: header ( request/response key -- value ) swap headers>> at ;
+
 : do-redirect? ( -- ? )
     f ;
-
-: response ( -- response ) machine-response get ; inline

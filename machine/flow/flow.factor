@@ -7,16 +7,6 @@ IN: http.machine.flow
 
 GENERIC: decide ( resource d -- )
 
-: handle-request ( request resource -- response )
-    [  
-        [ machine-request set ] dip
-        <machine-response> machine-response set
-        v3b13 decide 
-        response 
-    ] with-scope ;
-
-: handle-response ( request resource -- ) 2drop ;
-
 <PRIVATE
 
 : decision-test ( resource ? true false -- )
