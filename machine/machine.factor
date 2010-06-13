@@ -6,6 +6,9 @@ IN: http.machine
 
 TUPLE: machine-server < threaded-server ;
 
+SYMBOL: machine-dispatcher
+
+
 
 <PRIVATE
 
