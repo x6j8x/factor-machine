@@ -1,14 +1,12 @@
-USING: accessors destructors http.machine.data http.machine.states io.encodings.utf8
-http.machine.flow io.servers.connection kernel urls namespaces http.parsers io.crlf sequences ;
+USING: accessors combinators.short-circuit destructors
+http.machine.data http.machine.dispatch http.machine.flow
+http.machine.states http.parsers io.crlf io.encodings.utf8
+io.servers.connection kernel namespaces parser sequences
+strings urls words.symbol ;
 FROM: http => read-header parse-cookie ;
-
 IN: http.machine
 
-TUPLE: machine-server < threaded-server ;
-
-SYMBOL: machine-dispatcher
-
-
+TUPLE: machine-server < threaded-server dispatcher ;
 
 <PRIVATE
 
@@ -57,8 +55,8 @@ M: machine-server handle-client*
         [ handle-response ] bi
     ] with-destructors ;
 
-: <machine> ( -- server )
-    utf8 machine-server new-threaded-server
+: <machine> ( dispatcher -- server )
+    [ utf8 machine-server new-threaded-server ] dip >>dispatcher
         "factor machine" >>name
         "http" protocol-port >>insecure
         "https" protocol-port >>secure ;

@@ -36,17 +36,6 @@ TUPLE: machine-response
 
 : response ( -- response ) machine-response get ; inline
 
-: >machine-request ( request -- machine-request )
-    [ <machine-request> ] dip
-    {
-        [ method>> >>method ]
-        [ url>> >>raw-path ]
-        [ version>> >>version ]
-        [ header>> >>headers ]
-        [ post-data>> [ static ] dip 2array >>body ]
-        [ cookies>> >>cookies ]
-    } cleave ;
-
 : set-metadata ( value key -- )
     request metadata>> set-at ; inline
 
