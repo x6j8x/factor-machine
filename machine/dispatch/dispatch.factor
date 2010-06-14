@@ -1,4 +1,4 @@
-USING: accessors assocs combinators
+USING: accessors assocs combinators arrays
 combinators.short-circuit fry kernel parser sequences splitting
 strings words.symbol locals ;
 IN: http.machine.dispatch
@@ -45,7 +45,7 @@ TUPLE: dispatch-tree value children ;
 : leaf ( key tree -- tree )
     children>> at ; inline
 
-: insert-rule ( resource path tree -- )
+: insert-rule ( rule path tree -- )
     over empty? [ nip swap >>value drop ] [
         [ unclip ] dip 
         [ ensure-leaf ] [ leaf ] 2bi 
@@ -57,18 +57,27 @@ TUPLE: dispatch-tree value children ;
 
 : traverse-tree ( path tree -- rest entry )
     over empty? [ value>> ] [
-        [ unclip ] dip 2dup leaf?
-        [ leaf traverse-tree ] [ [ prepend ] [ value>> ] bi* ] if
+        [ [ ] [ unclip-slice ] bi ] dip 2dup leaf?
+            [ [ drop ] 3dip leaf traverse-tree ] 
+            [ [ 2drop ] [ value>> ] bi* ] if
     ] if ; inline recursive
 
 : find-host-entry ( request dispatcher -- dispatch-tree )
     hosts>> { [ [ host>> ] [ ] bi* at ] [ [ drop "*" ] [ ] bi* at ] } 2|| ;
 
-: annotate-paths ( request rest -- )
-    2drop ;
+: create-bindings ( rest bindings assoc -- rest' assoc )
+    2over { [ nip empty? not ] [ drop empty? not ] } 2&&
+    [
+        [ 2unclip-slice ] dip [ set-at ] keep create-bindings
+    ] [ nip ] if ;
 
-: find-resource ( request tree -- rest resource )
-    [ path-tokens>> ] [ ] bi* traverse-tree ;
+: annotate-paths ( request rest rule -- request )
+    bindings>> H{ } clone create-bindings
+    [ [ >array >>path-tokens ] [ "/" join >>display-path ] bi ] 
+    [ >>path-info ] bi* ;
+
+: locate-matching-rule ( request tree -- rest rule )
+    [ path>> "/" split rest-slice ] [ ] bi* traverse-tree ;
 
 PRIVATE>
 
@@ -86,12 +95,12 @@ SYNTAX: #{
     >>resource [ host>> over hosts>> ] [
         '[
             [ _ [ ] [ path-tokens>> ] bi ] dip
-            ensure-tree
-            [ insert-rule ] [ ] bi
+            ensure-tree [ insert-rule ] keep
         ] change-at
     ] bi ;
 
-: lookup-rule ( request dispatcher -- resource/f )
+: lookup-resource ( request dispatcher -- request resource/f )
     [ drop dup ] [ find-host-entry ] 2bi
-    find-resource [ annotate-paths ] dip ;
+    locate-matching-rule 
+    [ annotate-paths ] [ resource>> ] bi ;
 
