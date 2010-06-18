@@ -1,18 +1,45 @@
 USING: accessors alien byte-arrays destructors fry grouping io
-io.buffers kernel math math.parser sequences
-specialized-arrays.instances.alien.c-types.uchar ;
+io.buffers io.encodings kernel math math.parser namespaces io.pools
+sequences specialized-arrays.instances.alien.c-types.uchar ;
 IN: http.machine.stream
+
+<PRIVATE
+
+TUPLE: chunked-stream-pool < pool ;
 
 TUPLE: machine-output-stream stream { chunksize integer } { buffer buffer } ;
 
-: <machine-output-stream> ( stream -- mos )
-    [ machine-output-stream new ] dip >>stream
+M: chunked-stream-pool make-connection
+    drop machine-output-stream new
     32768 [ >>chunksize ] [ <buffer> >>buffer ] bi ;
+
+: <machine-output-stream> ( stream -- mos )
+    [ chunked-stream-pool get acquire-connection ] dip
+    >>stream ; inline
+
+DEFER: finish 
+
+PRIVATE>
+
+chunked-stream-pool <pool> chunked-stream-pool set-global
+
+: make-chunked ( -- )
+    output-stream [ 
+        dup encoder? 
+        [ [ <machine-output-stream> ] change-stream ] [ <machine-output-stream> ] if
+    ] change ; inline
+
+: end-chunked ( -- )
+    output-stream get dup encoder?
+    [ [ [ stream>> ] [ finish ] bi ] change-stream drop ] [ finish ] if ;
+
+: with-chunked-output ( quot -- )
+    [ make-chunked call( -- ) end-chunked ] with-scope ; inline
 
 <PRIVATE
 
 CONSTANT: CRLF B{ 13 10 }
-CONSTANT: LAST-CHUNK B{ 48 13 10 }
+CONSTANT: LAST-CHUNK B{ 48 13 10 13 10 }
 
 : write-chunk-header ( data stream -- )
     [ length >hex >byte-array CRLF ] dip '[ _ stream-write ] bi@ ; inline
@@ -41,10 +68,16 @@ CONSTANT: LAST-CHUNK B{ 48 13 10 }
     [ nip ] [ buffer>> buffer-capacity <= ] 2bi
     [ drop ] [ stream-flush ] if ; inline
 
-PRIVATE>
+: reset-stream ( mos -- mos )
+    [ buffer>> [ 0 ] dip buffer-reset ] keep f >>stream ; inline
+
+: return-to-pool ( mos -- )
+    reset-stream chunked-stream-pool get return-connection ; inline
 
 : finish ( mos -- )
-    [ write-available ] [ write-last-chunk ] bi ;
+    [ write-available ] [ write-last-chunk ] [ return-to-pool ] tri ; inline
+
+PRIVATE>
 
 M: machine-output-stream dispose*
     [ stream>> [ dispose* ] when* ]
