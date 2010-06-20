@@ -77,7 +77,7 @@ TUPLE: dispatch-tree value children ;
     [ >>path-info ] bi* ;
 
 : locate-matching-rule ( request tree -- rest rule )
-    [ path>> "/" split rest-slice ] [ ] bi* traverse-tree ;
+    [ url>> path>> "/" split rest-slice ] [ ] bi* traverse-tree ;
 
 PRIVATE>
 
@@ -101,6 +101,7 @@ SYNTAX: #{
 
 : lookup-resource ( request dispatcher -- request resource/f )
     [ drop dup ] [ find-host-entry ] 2bi
-    locate-matching-rule 
-    [ annotate-paths ] [ resource>> ] bi ;
+    locate-matching-rule
+    [ [ annotate-paths ] [ resource>> ] bi ]
+    [ drop f ] if* ;
 

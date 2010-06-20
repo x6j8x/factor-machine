@@ -1,4 +1,4 @@
-USING: kernel ;
+USING: kernel http.machine.data ;
 
 IN: http.machine.resource
 
@@ -100,7 +100,7 @@ GENERIC: create-path ( resource -- path )
     ! That Path will replace the previous one in the return value of wrq:disp-path(ReqData) 
     ! for all subsequent resource function calls in the course of this request.
 
-M: object create-path drop f ;
+M: object create-path drop =undefined= ;
 
 GENERIC: process-post ( resource -- ? )
     ! false X true | false If post-is-create returns false, then this will be 
@@ -108,7 +108,7 @@ GENERIC: process-post ( resource -- ? )
 
 M: object process-post drop f ;
 
-GENERIC: content-types-provided ( resource -- assoc )
+GENERIC: content-types-provided ( resource -- alist )
     ! [{"text/html", to-html}]   [{Mediatype, Handler}] This should return a list of pairs where each pair 
     ! is of the form {Mediatype, Handler} where Mediatype is a string of content-type format and the Handler 
     ! is an atom naming the function which can provide a resource representation in that media type. Content 
@@ -184,18 +184,18 @@ M: object moved-temporarily? drop f ;
 GENERIC: last-modified ( resource -- f/date )
     ! undefined  undefined | {{YYYY,MM,DD},{Hour,Min,Sec}} 
 
-M: object last-modified drop f ;
+M: object last-modified drop =undefined= ;
 
 GENERIC: expires ( resource -- f/date )
     ! undefined  undefined | {{YYYY,MM,DD},{Hour,Min,Sec}} 
 
-M: object expires drop f ;
+M: object expires drop =undefined= ;
 
 GENERIC: generate-etag ( resource -- f/etag )
     ! undefined  undefined | ETag If this returns a value, it will be used as the value of the ETag header 
     ! and for comparison in conditional requests.
 
-M: object generate-etag drop f ;
+M: object generate-etag drop =undefined= ;
 
 GENERIC: finish-request ( resource -- ? )
     ! This function, if exported, is called just before the final response is constructed and sent. The Result is ignored,

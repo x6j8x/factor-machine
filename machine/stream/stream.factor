@@ -21,7 +21,7 @@ DEFER: finish
 
 PRIVATE>
 
-chunked-stream-pool <pool> chunked-stream-pool set-global
+chunked-stream-pool [ chunked-stream-pool <pool> ] initialize
 
 : make-chunked ( -- )
     output-stream [ 
@@ -69,7 +69,8 @@ CONSTANT: LAST-CHUNK B{ 48 13 10 13 10 }
     [ drop ] [ stream-flush ] if ; inline
 
 : reset-stream ( mos -- mos )
-    [ buffer>> [ 0 ] dip buffer-reset ] keep f >>stream ; inline
+    [ buffer>> [ 0 ] dip buffer-reset ] keep
+    [ [ stream-flush ] when* f ] change-stream ; inline
 
 : return-to-pool ( mos -- )
     reset-stream chunked-stream-pool get return-connection ; inline

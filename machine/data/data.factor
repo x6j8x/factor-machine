@@ -1,46 +1,69 @@
-USING: accessors assocs combinators kernel namespaces calendar calendar.format 
-io.encodings.utf8 arrays ;
+USING: accessors arrays assocs byte-arrays calendar uuid
+calendar.format combinators combinators.short-circuit
+io.encodings.utf8 kernel math namespaces quotations ;
 IN: http.machine.data
 
-SINGLETONS: static stream ;
+TUPLE: stream-body chunk next ;
 
-UNION: body-option static stream ;
+: <stream-body> ( chunk next -- stream-body )
+    [ stream-body new ] 2dip
+    [ >>chunk ] [ >>next ] bi* ; inline
 
-TUPLE: body { option body-option initial: stream } content ;
+: >stream-body< ( stream-body -- chunk next )
+    [ chunk>> ] [ next>> ] bi ; inline
 
-TUPLE: request-state
-    socket peer ;
+SYMBOL: =undefined=
+
+TUPLE: machine-transaction
+    id metadata ;
+
+: <machine-transaction> ( -- tx )
+    machine-transaction new
+    uuid4 >>id
+    H{ } clone >>metadata ;
 
 TUPLE: machine-request 
     method url version headers cookies host port 
     display-path path raw-path path-info path-tokens 
-    app-root state metadata body ;
+    body ;
+
+: <machine-request> ( -- request )
+    machine-request new ;
 
 TUPLE: machine-response
-    version code reason headers cookies encoding body ;
+    version code reason headers cookies
+    content-type
+    content-charset
+    content-encoding
+    body ;
 
 : <machine-response> ( -- response )
     machine-response new
     "1.1" >>version
     500 >>code
     H{ } clone >>headers
-    H{ } clone >>cookies
-    utf8 >>encoding ;
+    V{ } clone >>cookies
+    utf8 >>content-encoding ;
 
-: <machine-request> ( -- request )
-    machine-request new 
-    H{ } clone >>metadata 
-    request-state new >>state ;
+: response-ok? ( response -- ? )
+    code>> 400 < ; inline
+
+: ?response-ok ( ..a response quot -- ..b )
+    over response-ok?
+    [ call ] [ 2drop ] if ; inline
 
 : request ( -- request ) machine-request get ; inline
 
 : response ( -- response ) machine-response get ; inline
 
-: set-metadata ( value key -- )
-    request metadata>> set-at ; inline
+: tx ( -- tx )
+    machine-transaction get ; inline
 
-: get-metadata ( key -- value )
-    request metadata>> at ; inline
+: set-tx-metadata ( value key -- )
+    tx metadata>> set-at ; inline
+
+: tx-metadata ( key -- value )
+    tx metadata>> at ; inline
 
 : set-request-header ( value key -- )
     request headers>> set-at ; inline
@@ -61,3 +84,48 @@ TUPLE: machine-response
 
 : do-redirect? ( -- ? )
     f ;
+
+CONSTANT: HTTP-STATUS-TABLE H{ 
+        { 100 "Continue" }
+        { 200 "OK" }
+        { 201 "Created" }
+        { 202 "Accepted" }
+        { 203 "Non-Authoritative Information" }
+        { 204 "No Content" }
+        { 205 "Reset Content" }
+        { 206 "Partial Content" }
+        { 300 "Multiple Choices" }
+        { 301 "Moved Permanently" }
+        { 302 "Found" }
+        { 303 "See Other" }
+        { 304 "Not Modified" }
+        { 305 "Use Proxy" }
+        { 307 "Temporary Redirect" }
+        { 400 "Bad Request" }
+        { 401 "Unauthorized" }
+        { 402 "Payment Required" }
+        { 403 "Forbidden" }
+        { 404 "Not Found" }
+        { 405 "Method Not Allowed" }
+        { 406 "Not Acceptable" }
+        { 407 "Proxy Authentication Required" }
+        { 408 "Request Timeout" }
+        { 409 "Conflict" }
+        { 410 "Gone" }
+        { 411 "Length Required" }
+        { 412 "Precondition Failed" }
+        { 413 "Request Entity Too Large" }
+        { 414 "Request-URI Too Long" }
+        { 415 "Unsupported Media Type" }
+        { 416 "Requested Range Not Satisfiable" }
+        { 417 "Expectation Failed" }
+        { 500 "Internal Server Error" }
+        { 501 "Not Implemented" }
+        { 502 "Bad Gateway" }
+        { 503 "Service Unavailable" }
+        { 504 "Gateway Timeout" }
+        { 505 "HTTP Version Not Supported" }
+    }
+
+: lookup-status-code ( code -- reason )
+    HTTP-STATUS-TABLE at ; inline
