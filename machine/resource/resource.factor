@@ -2,9 +2,9 @@ USING: kernel http.machine.data ;
 
 IN: http.machine.resource
 
-GENERIC: init ( resource-def -- resource )
+GENERIC: init-resource ( resource-def -- resource )
 
-M: object init clone ;
+M: object init-resource ;
 
 GENERIC: resource-exists? ( resource -- ? )
     ! true X true | false Returning non-true values will result in 404 Not Found.
@@ -108,6 +108,10 @@ GENERIC: process-post ( resource -- ? )
 
 M: object process-post drop f ;
 
+GENERIC: process-put ( resource -- ? )
+
+M: object process-put drop f ;
+
 GENERIC: content-types-provided ( resource -- alist )
     ! [{"text/html", to-html}]   [{Mediatype, Handler}] This should return a list of pairs where each pair 
     ! is of the form {Mediatype, Handler} where Mediatype is a string of content-type format and the Handler 
@@ -197,11 +201,11 @@ GENERIC: generate-etag ( resource -- f/etag )
 
 M: object generate-etag drop =undefined= ;
 
-GENERIC: finish-request ( resource -- ? )
+GENERIC: finish-request ( resource -- )
     ! This function, if exported, is called just before the final response is constructed and sent. The Result is ignored,
     ! so any effect of this function must be by returning a modified ReqData .
 
-M: object finish-request drop t ;
+M: object finish-request drop ;
 
 GENERIC: keep-alive? ( resource -- ? )
 

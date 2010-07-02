@@ -1,11 +1,9 @@
 USING: accessors arrays assocs byte-arrays calendar
-calendar.format combinators.short-circuit fry io
-io.crlf io.encodings kernel math namespaces present sequences
-strings urls vectors xml.data xml.writer
-http.machine.data
-http.machine.mime
-http.machine.stream ;
-FROM: http => parse-cookie unparse-set-cookie write-header ;
+calendar.format combinators combinators.short-circuit fry
+http.machine.data http.machine.mime http.machine.stream io
+io.crlf io.encodings kernel math namespaces present quotations
+sequences sets sorting strings urls vectors xml.data xml.writer ;
+FROM: http => parse-cookie unparse-set-cookie ;
 IN: http.machine.response
 
 <PRIVATE
@@ -23,11 +21,15 @@ IN: http.machine.response
 : write-http-version ( response -- )
     "HTTP/" write version>> write bl ; inline
 
+PRIVATE>
+
 : write-response-line ( response -- response )
     dup [ write-http-version ] [
         >http-status<
         [ write-status-code ] [ write-status-reason ] 2bi
     ] bi ;
+
+<PRIVATE
 
 : ensure-cookie-domain ( cookie -- cookie )
     [ url get host>> dup "localhost" = [ drop ] [ or ] if ]
@@ -45,7 +47,7 @@ M: string body-length [ length>> ] [ aux>> length ] bi + ;
 
 M: byte-array body-length length ;
 
-M: object body-length drop f ;
+M: object body-length drop response size>> ;
 
 : set-transfer-mode ( response -- response )
     dup body>> [
@@ -69,7 +71,27 @@ M: object body-length drop f ;
 : build-cookie-header ( seq cookie -- seq )
     ensure-cookie-domain unparse-set-cookie
     "Set-Cookie" swap 2array over push ; inline
-    
+
+: check-header-string ( str -- str )
+    dup "\r\n" intersects?
+    [ "Header injection attack" throw ] when ;
+
+: header-value>string ( value -- string )
+    {
+        { [ dup timestamp? ] [ timestamp>http-string ] }
+        {
+            [ dup { [ array? ] [ vector? ] } 1|| ]
+            [ [ header-value>string ] map "; " join ]
+        }
+        [ present ]
+    } cond ;
+
+: write-header ( assoc -- )
+    >alist [
+        [ check-header-string write ": " write ]
+        [ header-value>string check-header-string write crlf ] bi*
+    ] assoc-each crlf ;
+
 : write-response-header ( response -- response )
     ensure-response-headers    
     dup headers>> >alist >vector
@@ -89,14 +111,15 @@ M: string write-response-body write ;
 
 M: xml write-response-body write-xml ;
 
-M: object write-response-body output-stream get stream-copy ;
+M: callable write-response-body call( -- ) ;
 
-: write-body ( body -- )    
+: write-body ( response -- )
+    [  ] [ body>> ] bi
     [
-        dup { [ string? ] [ byte-array? ] } 1||
+        swap headers>> "Content-Length" swap at
         [ write-response-body ]
         [ '[ _ write-response-body ] with-chunked-output ] if
-    ] when* flush ; inline
+    ] [ drop ] if* flush ; inline
 
 PRIVATE>
 
@@ -106,5 +129,5 @@ PRIVATE>
     write-response-header
     swap method>> "HEAD" = [ drop ] [
         [ content-encoding>> encode-output ]
-        [ body>> write-body ] bi
+        [ write-body ] bi
     ] if ;

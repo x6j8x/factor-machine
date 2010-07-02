@@ -66,7 +66,7 @@ TUPLE: dispatch-tree value children ;
     hosts>> { [ [ host>> ] [ ] bi* at ] [ [ drop "*" ] [ ] bi* at ] } 2|| ;
 
 : create-bindings ( rest bindings assoc -- rest' assoc )
-    2over { [ nip empty? not ] [ drop empty? not ] } 2&&
+    2over { [ nip { [ empty? not ] [ "*" = not ] } 1&& ] [ drop empty? not ] } 2&&
     [
         [ 2unclip-slice ] dip [ set-at ] keep create-bindings
     ] [ nip ] if ;

@@ -1,6 +1,7 @@
-USING: accessors arrays assocs byte-arrays calendar uuid
+USING: accessors arrays assocs byte-arrays calendar
 calendar.format combinators combinators.short-circuit
-io.encodings.utf8 kernel math namespaces quotations ;
+io.encodings.utf8 kernel linked-assocs math namespaces
+quotations uuid ;
 IN: http.machine.data
 
 TUPLE: stream-body chunk next ;
@@ -35,12 +36,12 @@ TUPLE: machine-response
     content-type
     content-charset
     content-encoding
-    body ;
+    body
+    size ;
 
 : <machine-response> ( -- response )
     machine-response new
     "1.1" >>version
-    500 >>code
     H{ } clone >>headers
     V{ } clone >>cookies
     utf8 >>content-encoding ;
@@ -73,6 +74,9 @@ TUPLE: machine-response
 
 : set-response-header ( value key -- )
     response headers>> set-at ; inline
+
+: append-response-header ( value key -- )
+    response headers>> push-at ; inline
 
 : get-response-header ( header -- value )
     response headers>> at ; inline

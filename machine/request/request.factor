@@ -1,9 +1,7 @@
-USING: accessors combinators.short-circuit io.crlf kernel namespaces
-sequences urls
-http.machine.data
-http.machine.flow
-http.machine.states
-http.parsers ;
+USING: accessors combinators.short-circuit http.machine.data
+http.machine.flow http.machine.resource http.machine.states
+http.parsers io io.crlf io.encodings io.encodings.binary kernel
+namespaces sequences urls ;
 FROM: http => read-header parse-cookie ;
 IN: http.machine.request
 
@@ -40,11 +38,9 @@ PRIVATE>
     read-header >>headers
     extract-host
     extract-cookies
-    ?client-keep-alive ; inline
+    ?client-keep-alive 
+    input-stream get binary re-decode >>body ; inline
 
-: handle-request ( request resource -- request response )
-    [
-        machine-request set
-        <machine-response> machine-response set
-    ] dip v3b13 decide request response ; inline
+: handle-request ( request response resource -- request response )
+    [ v3b13 decide ] [ finish-request ] bi ; inline
 

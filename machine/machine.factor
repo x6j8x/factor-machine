@@ -43,9 +43,15 @@ TUPLE: machine-server < threaded-server dispatcher ;
     <machine-response> 404 >>code
     f "server-keep-alive" set-tx-metadata ;
 
+: init-tx ( request resource -- request response resource )
+    [
+        [ machine-request set ] keep
+        <machine-response> [ machine-response set ] keep
+    ] dip init-resource ; inline
+
 : process-request ( request resource -- )
     [
-        [ handle-request write-response ]
+        [ init-tx handle-request write-response ]
         [ <500> nip write-response ] recover
     ] with-destructors ;
 
@@ -60,7 +66,7 @@ TUPLE: machine-server < threaded-server dispatcher ;
 PRIVATE>
 
 M: machine-server handle-client*
-    [ 
+    [
         ?refresh-all read-request over
         dispatcher>> lookup-resource
         [ process-request ] 

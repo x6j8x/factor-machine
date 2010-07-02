@@ -1,9 +1,11 @@
 USING: accessors fry http.machine http.machine.data
 http.machine.dispatch http.machine.resource
-io.servers.connection kernel namespaces threads ;
+http.machine.resource.static io io.servers.connection kernel
+math.parser namespaces threads ;
 IN: http.machine.example
 
 SINGLETON: example-resource
+
 
 <PRIVATE
 
@@ -23,10 +25,17 @@ M: example-resource content-types-provided
 ! M: example-resource allowed-methods
 !    drop { "POST" "PUT" "OPTIONS" } ;
 
+M: example-resource process-post drop
+    "content-length" get-request-header [
+        string>number request body>> stream-read drop 
+    ] when* t ;
+
+M: example-resource resource-exists? drop t ;
 
 : start-machine-example ( -- )
     <machine-dispatcher>
         #{ "*" "example" "*" } example-resource add-rule
+        #{ "*" "files" "*" } "/Users/sascha/Temp/" <static-file-resource> add-rule
     <machine> 8080 >>insecure
     [ machine-server set-global ]
     [ '[ _ start-server ] in-thread ] bi ;
