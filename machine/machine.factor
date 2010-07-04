@@ -34,7 +34,7 @@ TUPLE: machine-server < threaded-server dispatcher ;
     utf8 >>content-encoding ; inline
 
 : <500> ( error -- response )
-    <machine-response> 500 >>code 
+    <machine-response> 500 >>code
     f "server-keep-alive" set-tx-metadata
     swap machine-development? get
     [ error-response ] [ drop ] if ;

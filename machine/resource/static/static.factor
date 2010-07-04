@@ -1,8 +1,10 @@
-USING: accessors arrays assocs checksums checksums.sha
-combinators.short-circuit formatting fry http.machine.data
-http.machine.resource http.machine.util io io.encodings.binary
-io.files io.files.info io.files.types io.pathnames kernel
-literals locals math mime.types namespaces sequences ;
+USING: accessors arrays assocs byte-arrays checksums
+checksums.sha combinators.short-circuit formatting fry
+http.machine.data http.machine.resource http.machine.util.byte-ranges io
+io.encodings.binary io.files io.files.info
+io.files.types io.pathnames io.streams.limited kernel literals
+locals math math.parser mime.types namespaces sequences strings
+uuid ;
 FROM: ascii => >lower ;
 IN: http.machine.resource.static
 
@@ -15,39 +17,28 @@ TUPLE: entry path info directory? ;
 
 <PRIVATE
 
-: copy-range ( resource range -- )
-    dup length 1 = [
-        2drop
-    ] [
-        2drop
-    ] if ;
+: [partial-copy] ( start length -- quot )
+    '[
+        _ seek-absolute input-stream get
+        [ stream-seek ] keep _ stream-eofs limit
+        [ write ] each-stream-block
+        flush
+    ] ; inline
+
+M: static-file-resource copy-range ( byte-range resource -- )
+    swap [ entry>> path>> binary ] dip
+    >byte-range< over -
+    [partial-copy] with-file-reader ;
 
 : copy-file ( resource -- )
     entry>> path>> binary 
     [ [ write ] each-block ] with-file-reader ; inline
 
-: range? ( -- ranges/f )
-    "range" get-request-header [ byte-ranges ] [ f ] if* ;
+M: static-file-resource ranges-satified? ( ranges resource -- ranges/f )
+    entry>> info>> size>> '[ _ swap end>> >= ] dupd all? [  ] [ drop f ] if ;
 
-PREDICATE: from-to-range < byte-range { [ >byte-range< and ] [ >byte-range< [ 0 >= ] bi@ and ] } 1&& ;
-PREDICATE: suffix-range < byte-range { [ start>> ] [ start>> 0 < ] } 1&& ;
-
-GENERIC: check-range ( size range -- t/f )
-
-M: from-to-range check-range
-    second <= ;
-
-M: suffix-range check-range
-    first neg <= ;
-
-M: object check-range
-    2drop f ;
-
-: ranges-satified? ( ranges resource -- ranges/f )
-    B entry>> info>> size>> '[ _ swap check-range ] dupd all? [  ] [ drop f ] if ;
-
-: write-file ( resource -- )
-    range? [ copy-range ] [ copy-file ] if* ;
+M: static-file-resource content-size ( resource -- size )
+    entry>> info>> size>> ;
 
 : set-file-info ( entry path -- entry )
     dup exists? [
@@ -63,15 +54,10 @@ M: object check-range
 : content-type ( path -- ct )
     file-extension >lower mime-types at "application/octet-stream" or ;
 
-:: handle-range-request ( ranges resource -- quot/f )
-    ranges resource ranges-satified?
-    [ [ [ resource ranges copy-range ] ] ]
-    [ response 416 >>code drop f ] if ; inline
-
-:: [content-writer] ( resource -- quot )
-    range? :> ranges
-    ranges [ ranges resource handle-range-request ]
-    [ [ [ resource copy-file ] ] ] if ; inline
+: [content-writer] ( resource -- quot/f )
+    dup entry>> info>> size>> range-request?
+    [ swap [range-request-handler] ]
+    [ '[ [ _ copy-file ] ] ] if* ; inline
 
 PRIVATE>
 
@@ -105,5 +91,5 @@ M: static-file-resource moved-permanently?
 M: static-file-resource finish-request
     "bytes" "Accept-Ranges" set-response-header
     "range-request" tx-metadata [
-        response 206 >>code drop
-    ] when drop ;
+        drop response 206 >>code drop
+    ] [ entry>> [ [ response ] dip info>> size>> >>size drop ] when* ] if ;

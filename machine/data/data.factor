@@ -4,6 +4,8 @@ io.encodings.utf8 kernel linked-assocs math namespaces
 quotations uuid ;
 IN: http.machine.data
 
+CONSTANT: CRLF B{ 13 10 }
+
 TUPLE: stream-body chunk next ;
 
 : <stream-body> ( chunk next -- stream-body )

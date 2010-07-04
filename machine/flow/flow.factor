@@ -307,10 +307,9 @@ M: v3o18 decide
             [ set-expires ]
             [
                 [ response "accept-content-type" tx-metadata ] dip
-                [ (content-types-provided) at [ call( -- content ) >>body ] when* ]
-                [ drop >>content-type ] 3bi 2drop
-                ! get content quot call content-types-provided
-                ! call content quot and set response body
+                [ drop >>content-type ]
+                [ (content-types-provided) at [ call( -- content ) >>body ] when* ] 3bi
+                2drop
             ]
             [ response code>> [ decide ] [ v3o18b decide ] if* ]
         } cleave
