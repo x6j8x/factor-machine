@@ -1,39 +1,94 @@
-USING: accessors arrays assocs combinators.short-circuit fry
-io.encodings.iana kernel math.order math.parser mime.types peg
-sequences sorting splitting ;
+USING: accessors arrays ascii assocs combinators.short-circuit
+fry io.encodings.iana kernel make math math.order math.parser
+mime.types peg sequences sequences.deep sorting splitting
+strings ;
 IN: http.machine.mime
+
+TUPLE: media-type major minor q formatted ;
+
+: <media-type> ( major minor q -- media-type )
+    2over "/" glue media-type boa ;
 
 <PRIVATE
 
-: find-q-param ( seq -- q-val/1 )
-    dup empty? [ drop 1 ] [
-        unclip-slice "=" split unclip-slice "q" = 
-        [ nip first [ string>number [ 0 ] unless* ] [ 0 ] if* ]
-        [ drop find-q-param ] if
-    ] if ; inline recursive
 
-: prioritize ( param -- mt prio )
-    ";" split dup length 1 =
-    [ first 1 ]
-    [ unclip-slice swap find-q-param ] if ; inline recursive
+! Accept         = "Accept" ":" #( media-range [ accept-params ] )
+! media-range    = ( "*/*"
+!                  | ( type "/" "*" )
+!                  | ( type "/" subtype ) ) *( ";" parameter )
+! accept-params  = ";" "q" "=" qvalue *( accept-extension )
+! accept-extension = ";" token [ "=" ( token | quoted-string ) ]
+
+: 'space' ( -- parser )
+    [ " \t" member? ] satisfy repeat0 hide ;
+
+: 'comma' ( -- parser )
+    "," token hide ;
+
+: 'type' ( -- parser )
+    [ { [ letter? ] [ CHAR: + = ] [ CHAR: - = ] [ CHAR: . = ] } 1|| ] satisfy repeat1
+    "*" token 2choice [ >string ] action ;
+
+: 'float-value' ( -- parser )
+    [
+        "0" token optional ,
+        "." token ,
+        [ digit? ] satisfy repeat1 [ >string ] action ,
+    ] seq* [ flatten concat string>number ] action ;
+
+: 'q-param' ( -- parser )
+    [
+        "q" token hide ,
+        "=" token hide ,
+        'float-value' ,
+    ] seq* ;
+
+: 'accept-params' ( -- parser )
+    [
+        'space' ,
+        ";" token hide ,
+        'space' ,
+        'q-param' ,
+    ] seq* [ flatten first ] action ;
+
+: 'media-range' ( -- parser )
+    [
+        'comma' optional ,
+        'space' ,
+        'type' ,
+        "/" token hide ,
+        'type' ,
+        'space' ,
+        'accept-params' optional ,
+        'space' ,
+    ] seq* [ 
+        flatten dup length 3 =
+        [ first3 <media-type> ] [ first2 1 <media-type> ] if 
+    ] action ;
+
+PEG: parse-accept-spec ( str -- types )
+    [
+        'space' ,
+        'media-range' repeat1 ,
+    ] seq* [ flatten ] action ;
+
 
 : build-accept-list ( accept -- seq )
-    [ V{ } clone ] dip "," split
-    [ prioritize swap 2array over push ] each
-    [ [ first ] bi@ swap <=> ] sort values ;
+    parse-accept-spec [ [ q>> ] bi@ swap <=> ] sort ;
 
 : match-major-type ( str cp -- mt/f )
-    swap "/" split first
+    swap major>>
     '[ first "/" split first _ = ] find nip first ; inline
 
 : mt-exact-match? ( mt cp -- mt/f )
-    dupd key? [  ] [ drop f ] if ; inline
+    [ dup formatted>> ] dip
+    key? [ formatted>> ] [ drop f ] if ; inline
 
 : mt-any-match? ( mt cp -- mt/f )
-    over "*/*" = [ nip first first ] [ 2drop f ] if ; inline
+    over formatted>> "*/*" = [ nip first first ] [ 2drop f ] if ; inline
 
 : mt-major-match? ( mt cp -- mt/f )
-    over last 42 = [ match-major-type ] [ 2drop f ] if ; inline
+    over minor>> "*" = [ match-major-type ] [ 2drop f ] if ; inline
 
 DEFER: find-media-type
 

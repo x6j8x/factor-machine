@@ -2,10 +2,10 @@ USING: assocs hashtables http.machine.data http.machine.mime
 kernel tools.test ;
 IN: http.machine.mime.tests
 
-[ "text/plain" ]
+[ "application/xhtml+xml" ]
 [
-    "application/xml,application/xhtml+xml,text/html;q=0.9,text/plain;q=0.8,image/png,*/*;q=0.5"
-    { { "text/xml" [ ] } { "text/plain" [ ] } } choose-media-type
+    "application/xml,application/xhtml+xml,text/html;q=0.9, text/plain;q=0.8,image/png,*/*;q=0.5"
+    { { "application/xhtml+xml" [ ] } { "text/plain" [ ] } } choose-media-type
 ] unit-test
 
 [ "text/html" ]
