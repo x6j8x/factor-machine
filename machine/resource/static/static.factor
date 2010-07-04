@@ -86,7 +86,7 @@ M: static-file-resource generate-etag
     "%s-%s" sprintf sha1 checksum-bytes hex-string ;
 
 M: static-file-resource moved-permanently?
-    entry>> directory?>> [ "http://127.0.0.1:8080/files/index.html" ] [ f ] if ;
+    dup entry>> directory?>> [ [ request url>> path>> ] dip index-page>> append-path  ] [ drop f ] if ;
 
 M: static-file-resource finish-request
     "bytes" "Accept-Ranges" set-response-header
