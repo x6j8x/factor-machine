@@ -1,7 +1,6 @@
 USING: accessors ascii byte-arrays combinators
 combinators.short-circuit continuations fry http.machine.data
-http.machine.resource.static.private io io.encodings.binary
-io.files kernel layouts locals make math math.order math.parser
+io io.encodings.binary io.files kernel layouts locals make math math.order math.parser
 peg peg.parsers prettyprint sequences sorting strings uuid ;
 FROM: sequences.deep => flatten ;
 IN: http.machine.util.byte-ranges
