@@ -20,7 +20,7 @@ TUPLE: entry path info directory? ;
 : [partial-copy] ( start length -- quot )
     '[
         _ seek-absolute input-stream get
-        [ stream-seek ] keep _ stream-eofs limit
+        [ stream-seek ] keep _ limit-stream
         [ write ] each-stream-block
         flush
     ] ; inline
