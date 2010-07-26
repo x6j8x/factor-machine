@@ -71,7 +71,7 @@ TUPLE: machine-response
 : set-request-header ( value key -- )
     request headers>> set-at ; inline
 
-: get-request-header ( header -- value )
+: request-header ( header -- value )
     request headers>> at ; inline
 
 : set-response-header ( value key -- )
@@ -80,7 +80,7 @@ TUPLE: machine-response
 : append-response-header ( value key -- )
     response headers>> push-at ; inline
 
-: get-response-header ( header -- value )
+: response-header ( header -- value )
     response headers>> at ; inline
 
 : set-header ( request/response value key -- request/response )

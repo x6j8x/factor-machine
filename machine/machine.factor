@@ -3,7 +3,7 @@ calendar.format combinators.short-circuit continuations
 http.parsers io io.crlf io.encodings io.encodings.utf8
 io.servers.connection kernel math namespaces parser present
 sequences strings urls vectors vocabs.refresh words.symbol
-xml.data xml.writer destructors fry html.streams
+xml.data xml.writer destructors fry html.streams io.ports
 http.machine.data
 http.machine.dispatch
 http.machine.flow
@@ -53,19 +53,20 @@ TUPLE: machine-server < threaded-server dispatcher ;
     [
         [ init-tx handle-request write-response ]
         [ <500> nip write-response ] recover
-    ] with-destructors ;
+    ] with-destructors ; inline
 
 : ?refresh-all ( -- )
     machine-development? get-global
-    [ global [ refresh-all ] bind ] when ;
+    [ global [ refresh-all ] bind ] when ; inline
 
 : with-tx ( ..a quot -- ..b )
     [ <machine-transaction> machine-transaction ] dip
     with-variable ; inline
 
-PRIVATE>
+: close-port ( -- )
+    output-stream get underlying-port dispose* ;
 
-M: machine-server handle-client*
+: machine-handle-client ( count machine-server -- )
     [
         ?refresh-all read-request over
         dispatcher>> lookup-resource
@@ -73,7 +74,14 @@ M: machine-server handle-client*
         [ <404> write-response ] if*
         "server-keep-alive" tx-metadata
     ] with-tx
-    [ handle-client* ] [ drop ] if ;
+    pick 100 < and
+    [ [ 1 + ] dip machine-handle-client ]
+    [ 2drop close-port ] if ; inline recursive
+    
+PRIVATE>
+
+M: machine-server handle-client*
+    [ [ 0 ] dip machine-handle-client ] with-destructors ;
 
 : <machine> ( dispatcher -- server )
     [ utf8 machine-server new-threaded-server ] dip >>dispatcher

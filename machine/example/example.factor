@@ -26,7 +26,7 @@ M: example-resource content-types-provided
 !    drop { "POST" "PUT" "OPTIONS" } ;
 
 M: example-resource process-post drop
-    "content-length" get-request-header [
+    "content-length" request-header [
         string>number request body>> stream-read drop 
     ] when* t ;
 
@@ -36,7 +36,7 @@ M: example-resource resource-exists? drop t ;
     <machine-dispatcher>
         #{ "*" "example" "*" } example-resource add-rule
         #{ "*" "files" "*" } "/Users/sascha/Temp/" <static-file-resource> add-rule
-    <machine> 8080 >>insecure
+    <machine> 8080 >>insecure f >>secure
     [ machine-server set-global ]
     [ '[ _ start-server ] in-thread ] bi ;
 

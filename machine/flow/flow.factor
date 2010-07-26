@@ -8,15 +8,16 @@ IN: http.machine.flow
 
 GENERIC: decide ( resource d -- )
 
-CONSTANT: TRACE_FLOW t
+CONSTANT: TRACE_FLOW f
 
 <PRIVATE
 
 : ?trace ( state -- )
-    TRACE_FLOW [ name>> "X-Machine-Flow" append-response-header ] [ drop ] if ;
+    TRACE_FLOW
+    [ name>> "X-Machine-Flow" append-response-header ] [ drop ] if ; inline
 
 : decision-test ( resource ? true false -- )
-    pick [ drop ] [ nip ] if nip decide ;
+    pick [ drop ] [ nip ] if nip decide ; inline
 
 : run-decision ( resource state quot -- )
     [ ?trace ] dip [  ] swap 
@@ -25,7 +26,7 @@ CONSTANT: TRACE_FLOW t
 CONSTANT: 100-CONTINUE T{ machine-response { code 100 } { version "1.1" } }
 
 : ?expect ( -- )
-    "expect" get-request-header "100-continue" = [
+    "expect" request-header "100-continue" = [
         100-CONTINUE write-response-line crlf drop flush
         "expect" request headers>> delete-at
     ] when ;
@@ -98,27 +99,27 @@ M: v3b3 decide
     ] dip if ; inline
 
 M: v3c3 decide
-    ?trace "accept" get-request-header
+    ?trace "accept" request-header
     [ v3c4 decide ] [
         [ [ nip first first "accept-content-type" set-tx-metadata ] ?content-types-provided ]
         [ v3d4 decide ] bi
     ] if ;
 
 M: v3c4 decide
-    ?trace "accept" get-request-header 
+    ?trace "accept" request-header 
     '[ _ swap choose-media-type
         [ "accept-content-type" set-tx-metadata v3d4 decide ]
         [ 406 decide ] if*
     ] ?content-types-provided ;
 
 M: v3d4 decide
-    [ drop "accept-language" get-request-header v3d5 v3e5 ] run-decision ;
+    [ drop "accept-language" request-header v3d5 v3e5 ] run-decision ;
 
 M: v3d5 decide
     [ language-available? v3e5 406 ] run-decision ;
 
 M: v3e5 decide
-    ?trace "accept-charset" get-request-header
+    ?trace "accept-charset" request-header
     [ v3e6 decide ]
     [
         [ "*" choose-charset "accept-content-charset" set-tx-metadata ]
@@ -127,13 +128,13 @@ M: v3e5 decide
 
 M: v3e6 decide
     ?trace [  ] [ 
-        "accept-charset" get-request-header choose-charset 
+        "accept-charset" request-header choose-charset 
         [ "accept-content-charset" set-tx-metadata ] keep
         [ v3f6 decide ] [ 406 decide ] if
     ] bi ;
 
 M: v3f6 decide
-    [ drop "accept-encoding" get-request-header v3f7 v3g7 ] run-decision ;
+    [ drop "accept-encoding" request-header v3f7 v3g7 ] run-decision ;
 
 M: v3f7 decide
     ! decision_test(choose_encoding(get_header_val("accept-encoding")),
@@ -145,34 +146,34 @@ M: v3g7 decide
     [ [ resource-exists? v3g8 v3h7 ] run-decision ] 2bi ;
 
 M: v3g8 decide
-    [ drop "if-match" get-request-header v3g9 v3h10 ] run-decision ;
+    [ drop "if-match" request-header v3g9 v3h10 ] run-decision ;
 
 M: v3g9 decide
-    [ drop "if-match" get-request-header "*" = v3h10 v3g11 ] run-decision ;
+    [ drop "if-match" request-header "*" = v3h10 v3g11 ] run-decision ;
 
 M: v3g11 decide
     ?trace [ ] [
         generate-etag
-        "if-match" get-request-header =
+        "if-match" request-header =
         [ v3h10 decide ] [ 412 decide ] if
     ] bi ;
 
 M: v3h7 decide
-    [ drop "if-match" get-request-header "*" = 412 v3i7 ] run-decision ;
+    [ drop "if-match" request-header "*" = 412 v3i7 ] run-decision ;
 
 M: v3h10 decide
     ! decision_test(get_header_val("if-unmodified-since"),undefined,v3i12,v3h11);
-    [ drop "if-unmodified-since" get-request-header v3h11 v3i12 ] run-decision ;
+    [ drop "if-unmodified-since" request-header v3h11 v3i12 ] run-decision ;
 
 M: v3h11 decide
-    ?trace "if-unmodified-since" get-request-header 
+    ?trace "if-unmodified-since" request-header 
     [ rfc822>timestamp drop v3h12 decide ] 
     [ 2drop v3i12 decide ] recover ;
 
 M: v3h12 decide
     ?trace dup
     last-modified [ 
-        "if-unmodified-since" get-request-header rfc822>timestamp
+        "if-unmodified-since" request-header rfc822>timestamp
         <=> +lt+ = [ 412 decide ] [ v3i12 decide ] if
     ] [ drop ] if* ;
 
@@ -185,10 +186,10 @@ M: v3i7 decide
     [ drop request method>> "PUT" = v3i4 v3k7 ] run-decision ;
 
 M: v3i12 decide
-    [ drop "if-none-match" get-request-header v3i13 v3l13 ] run-decision ;
+    [ drop "if-none-match" request-header v3i13 v3l13 ] run-decision ;
     
 M: v3i13 decide
-    [ drop "if-none-match" get-request-header "*" = v3j18 v3k13 ] run-decision ;
+    [ drop "if-none-match" request-header "*" = v3j18 v3k13 ] run-decision ;
     
 M: v3j18 decide
     [ drop request method>> { "GET" "HEAD" } member? 304 412 ] run-decision ;
@@ -203,7 +204,7 @@ M: v3k7 decide
 
 M: v3k13 decide
     ?trace dup generate-etag
-    "if-none-match" get-request-header unquote-header =
+    "if-none-match" request-header unquote-header =
     [ v3j18 decide ] [ v3l13 decide ] if ;
 
 M: v3l5 decide
@@ -215,20 +216,20 @@ M: v3l7 decide
     [ drop request method>> "POST" = v3m7 404 ] run-decision ;
 
 M: v3l13 decide
-    [ drop "if-modified-since" get-request-header v3l14 v3m16 ] run-decision ;
+    [ drop "if-modified-since" request-header v3l14 v3m16 ] run-decision ;
 
 M: v3l14 decide
-    ?trace "if-modified-since" get-request-header 
+    ?trace "if-modified-since" request-header 
     [ rfc822>timestamp drop v3l15 decide ] 
     [ 2drop v3m16 decide ] recover ;
 
 M: v3l15 decide
-    ?trace "if-modified-since" get-request-header 
+    ?trace "if-modified-since" request-header 
     rfc822>timestamp now <=> +gt+ = 
     [ v3m16 decide ] [ v3l17 decide ] if ;
 
 M: v3l17 decide
-    ?trace "if-modified-since" get-request-header rfc822>timestamp
+    ?trace "if-modified-since" request-header rfc822>timestamp
     over last-modified 
     [ nip not ] [ <=> +lt+ = ] 2bi or [ v3m16 decide ] [ 304 decide ] if ;
 
@@ -254,7 +255,7 @@ M: v3n5 decide
     [
         do-redirect? 
         [
-            "Location" get-response-header 
+            "Location" response-header 
             [ 303 decide ] [ 500 decide ] if 
         ] [ v3p11 decide ] if
     ] [ 500 decide ] if ;
@@ -330,7 +331,7 @@ M: v3p3 decide
 M: v3p11 decide
     ?expect
     request method>> "PUT" = [ over process-put ] [ t ] if
-    [ [ drop "Location" get-response-header 201 v3o20 ] run-decision ]
+    [ [ drop "Location" response-header 201 v3o20 ] run-decision ]
     [ ?trace 500 decide ] if ;
 
 PRIVATE>

@@ -130,7 +130,7 @@ PRIVATE>
     [ 3drop f ] recover ;
 
 : range-request? ( size -- ranges/f )
-    "range" get-request-header [ byte-ranges ] [ drop f ] if* ;
+    "range" request-header [ byte-ranges ] [ drop f ] if* ;
 
 GENERIC: ranges-satified? ( ranges resource -- ranges/f )
 
