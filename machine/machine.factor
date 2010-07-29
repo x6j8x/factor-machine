@@ -59,12 +59,20 @@ TUPLE: machine-server < threaded-server dispatcher ;
     machine-development? get-global
     [ global [ refresh-all ] bind ] when ; inline
 
-: with-tx ( ..a quot -- ..b )
+: with-tx ( ..a quot -- ..b keep-alive? )
     [ <machine-transaction> machine-transaction ] dip
+    [ "server-keep-alive" tx-metadata ] compose
     with-variable ; inline
 
 : close-port ( -- )
     output-stream get underlying-port dispose* ;
+
+DEFER: machine-handle-client
+
+: ?reuse-connection ( count machine-server keep-alive? -- )
+    pick 100 < and
+    [ [ 1 + ] dip machine-handle-client ]
+    [ 2drop close-port ] if ; inline recursive
 
 : machine-handle-client ( count machine-server -- )
     [
@@ -72,11 +80,7 @@ TUPLE: machine-server < threaded-server dispatcher ;
         dispatcher>> lookup-resource
         [ process-request ] 
         [ <404> write-response ] if*
-        "server-keep-alive" tx-metadata
-    ] with-tx
-    pick 100 < and
-    [ [ 1 + ] dip machine-handle-client ]
-    [ 2drop close-port ] if ; inline recursive
+    ] with-tx ?reuse-connection ; inline recursive
     
 PRIVATE>
 
