@@ -37,9 +37,10 @@ PRIVATE>
 
 : ?server-keep-alive ( response -- response )
     dup {
-        [ drop "client-keep-alive" tx-metadata ]
+        [ drop client-keep-alive tx-metadata ]
+        [ drop connection-request-count tx-metadata 1000 < ]
         [ response-ok? ]
-    } 1&& "server-keep-alive" set-tx-metadata ;
+    } 1&& server-keep-alive set-tx-metadata ;
 
 GENERIC: body-length ( body -- length )
 
@@ -61,7 +62,7 @@ M: object body-length drop response size>> ;
     now timestamp>rfc822 "Date" set-header ; inline
 
 : set-connection ( response -- response )
-    "server-keep-alive" tx-metadata [ "close" "Connection" set-header ] unless ; inline
+    server-keep-alive tx-metadata [ "close" "Connection" set-header ] unless ; inline
 
 : ensure-response-headers ( response -- response )
     set-date

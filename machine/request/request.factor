@@ -28,7 +28,7 @@ IN: http.machine.request
     dup {
         [ version>> "1.1" = ]
         [ "connection" header "close" = not ]
-    } 1&& "client-keep-alive" set-tx-metadata ; inline
+    } 1&& client-keep-alive set-tx-metadata ; inline
 
 PRIVATE>
 

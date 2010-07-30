@@ -35,13 +35,13 @@ TUPLE: machine-server < threaded-server dispatcher ;
 
 : <500> ( error -- response )
     <machine-response> 500 >>code
-    f "server-keep-alive" set-tx-metadata
+    f server-keep-alive set-tx-metadata
     swap machine-development? get
     [ error-response ] [ drop ] if ;
 
 : <404> ( -- response )
     <machine-response> 404 >>code
-    f "server-keep-alive" set-tx-metadata ;
+    f server-keep-alive set-tx-metadata ;
 
 : init-tx ( request resource -- request response resource )
     [
@@ -61,7 +61,7 @@ TUPLE: machine-server < threaded-server dispatcher ;
 
 : with-tx ( ..a quot -- ..b keep-alive? )
     [ <machine-transaction> machine-transaction ] dip
-    [ "server-keep-alive" tx-metadata ] compose
+    [ server-keep-alive tx-metadata ] compose
     with-variable ; inline
 
 : close-port ( -- )
@@ -70,12 +70,12 @@ TUPLE: machine-server < threaded-server dispatcher ;
 DEFER: machine-handle-client
 
 : ?reuse-connection ( count machine-server keep-alive? -- )
-    pick 100 < and
     [ [ 1 + ] dip machine-handle-client ]
-    [ 2drop close-port ] if ; inline recursive
+    [ 2drop ] if ; inline recursive
 
 : machine-handle-client ( count machine-server -- )
     [
+        [ dup connection-request-count set-tx-metadata ] dip
         ?refresh-all read-request over
         dispatcher>> lookup-resource
         [ process-request ] 

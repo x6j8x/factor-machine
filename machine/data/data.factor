@@ -6,6 +6,12 @@ IN: http.machine.data
 
 CONSTANT: CRLF B{ 13 10 }
 
+SYMBOLS: client-keep-alive
+    server-keep-alive
+    connection-request-count
+    accept-content-type
+    accept-content-charset ;
+
 TUPLE: stream-body chunk next ;
 
 : <stream-body> ( chunk next -- stream-body )

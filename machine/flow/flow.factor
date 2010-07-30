@@ -101,14 +101,14 @@ M: v3b3 decide
 M: v3c3 decide
     ?trace "accept" request-header
     [ v3c4 decide ] [
-        [ [ nip first first "accept-content-type" set-tx-metadata ] ?content-types-provided ]
+        [ [ nip first first accept-content-type set-tx-metadata ] ?content-types-provided ]
         [ v3d4 decide ] bi
     ] if ;
 
 M: v3c4 decide
     ?trace "accept" request-header 
     '[ _ swap choose-media-type
-        [ "accept-content-type" set-tx-metadata v3d4 decide ]
+        [ accept-content-type set-tx-metadata v3d4 decide ]
         [ 406 decide ] if*
     ] ?content-types-provided ;
 
@@ -122,14 +122,14 @@ M: v3e5 decide
     ?trace "accept-charset" request-header
     [ v3e6 decide ]
     [
-        [ "*" choose-charset "accept-content-charset" set-tx-metadata ]
+        [ "*" choose-charset accept-content-charset set-tx-metadata ]
         [ v3f6 decide ] bi 
     ] if ;
 
 M: v3e6 decide
     ?trace [  ] [ 
         "accept-charset" request-header choose-charset 
-        [ "accept-content-charset" set-tx-metadata ] keep
+        [ accept-content-charset set-tx-metadata ] keep
         [ v3f6 decide ] [ 406 decide ] if
     ] bi ;
 
@@ -307,7 +307,7 @@ M: v3o18 decide
             [ set-last-modified ]
             [ set-expires ]
             [
-                [ response "accept-content-type" tx-metadata ] dip
+                [ response accept-content-type tx-metadata ] dip
                 [ drop >>content-type ]
                 [ (content-types-provided) at [ call( -- content ) >>body ] when* ] 3bi
                 2drop
