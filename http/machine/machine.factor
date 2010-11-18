@@ -1,7 +1,7 @@
 USING: accessors arrays assocs byte-arrays calendar
 calendar.format combinators.short-circuit continuations
 http.parsers io io.crlf io.encodings io.encodings.utf8
-io.servers.connection kernel math namespaces parser present
+io.servers kernel math namespaces parser present
 sequences strings urls vectors vocabs.refresh words.symbol
 xml.data xml.writer destructors fry html.streams io.ports
 http.machine.data

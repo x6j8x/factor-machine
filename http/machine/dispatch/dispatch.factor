@@ -9,28 +9,25 @@ TUPLE: machine-dispatcher hosts ;
 
 TUPLE: dispatch-rule host path-tokens bindings resource ;
 
+:: check-rule ( host path bindings -- )
+    {
+        [ host string? ]
+        [ path string? ]
+        [ bindings { [ "*" = ] [ [ symbol? ] all? ] } 1|| ]
+    } 0&&
+    [ "matching rule must be a sequence in the form 
+        #{ \"HOSTNAME\"|\"*\" \"PATH\" { BINDING ... }|\"*\" }
+        Example: R# { \"www.myhost.net\" \"a\" \"*\" }" throw ] unless ; inline
+
+
 PRIVATE>
 
-: <dispatch-rule> ( seq -- dispatch-rule )
-    [ dispatch-rule new ] dip
-    {  
-        [ first >>host ]
-        [ second "/" split >>path-tokens ]
-        [ third >>bindings ]
-    } cleave ;
+: <dispatch-rule> ( host path bindings -- dispatch-rule )
+    [ check-rule ]
+    [ [ "/" split ] dip f dispatch-rule boa ] 3bi ;
 
 <PRIVATE
 
-: ?dispatch-rule ( sequence -- dispatch-rule )
-    [ { [ sequence? ]
-        [ first string? ]
-        [ second string? ]
-        [ third { [ "*" = ] [ [ symbol? ] all? ] } 1|| ] } 1&&
-        [ "matching rule must be a sequence in the form 
-            #{ \"HOSTNAME\"|\"*\" \"PATH\" { BINDING ... }|\"*\" }
-            Example: R# { \"www.myhost.net\" \"a\" \"*\" }" throw ] unless
-    ] [ <dispatch-rule> ] bi ; inline
-    
 TUPLE: dispatch-tree value children ;
 
 : <dispatch-tree> ( -- dispatch-tree )
@@ -84,14 +81,16 @@ PRIVATE>
 <<
 
 SYNTAX: #{
-    \ } parse-until ?dispatch-rule suffix! ;
+    \ } parse-until first3 <dispatch-rule> suffix! ;
 
 >>
 
 : <machine-dispatcher> ( -- dispatcher )
     machine-dispatcher new H{ } clone >>hosts ;
 
-: add-rule ( dispatcher dispatch-rule resource-exemplar -- dispatcher )
+GENERIC: add-rule ( dispatcher dispatch-rule resource -- dispatcher )
+
+M: object add-rule ( dispatcher dispatch-rule resource -- dispatcher )
     >>resource [ host>> over hosts>> ] [
         '[
             [ _ [ ] [ path-tokens>> ] bi ] dip
