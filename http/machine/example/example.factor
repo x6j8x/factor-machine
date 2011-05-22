@@ -1,6 +1,6 @@
 USING: accessors fry http.machine http.machine.data
 http.machine.dispatch http.machine.resource
-http.machine.resource.static io io.servers.connection kernel
+http.machine.resource.static io io.servers kernel
 math.parser namespaces threads ;
 IN: http.machine.example
 
