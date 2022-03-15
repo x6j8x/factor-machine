@@ -12,15 +12,6 @@ SYMBOLS: client-keep-alive
     accept-content-type
     accept-content-charset ;
 
-TUPLE: stream-body chunk next ;
-
-: <stream-body> ( chunk next -- stream-body )
-    [ stream-body new ] 2dip
-    [ >>chunk ] [ >>next ] bi* ; inline
-
-: >stream-body< ( stream-body -- chunk next )
-    [ chunk>> ] [ next>> ] bi ; inline
-
 SYMBOL: =undefined=
 
 TUPLE: machine-transaction

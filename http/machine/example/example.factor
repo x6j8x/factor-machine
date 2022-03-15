@@ -10,7 +10,7 @@ SINGLETON: example-resource
 <PRIVATE
 
 : produce-text-content ( -- content )
-    "Hello " [ "World " [ "!" f <stream-body> ] <stream-body> ] <stream-body> ;
+    "Hello  World !" ;
 
 : produce-html-content ( -- content )
     "<html><title>Factor Machine Example</title><body><h1>Hello World!</h1></body></html>" ;

@@ -1,8 +1,8 @@
 USING: accessors arrays assocs byte-arrays calendar
 calendar.format combinators combinators.short-circuit fry
-http.machine.data http.machine.mime http.machine.stream io
-io.crlf io.encodings kernel math namespaces present quotations
-sequences sets sorting strings urls vectors xml.data xml.writer ;
+http.machine.data http.machine.mime io io.crlf io.encodings
+kernel math namespaces present quotations sequences sets
+sorting strings urls vectors xml.data xml.writer ;
 FROM: http => parse-cookie unparse-set-cookie ;
 IN: http.machine.response
 
@@ -52,11 +52,9 @@ M: object body-length drop response size>> ;
 
 : set-transfer-mode ( response -- response )
     dup body>> [
-        body-length
-        [ "Content-Length" set-header ]
-        [ "chunked" "Transfer-Encoding" set-header ] if*
-        dup build-content-type "Content-Type" set-header    
-    ] [ "0" "Content-Length" set-header ] if* ; inline
+        [ dup body>> body-length "Content-Length" set-header ]
+        [ build-content-type "Content-Type" set-header ] bi
+    ] [ "0" "Content-Length" set-header ] if ; inline
 
 : set-date ( response -- response )
     now timestamp>rfc822 "Date" set-header ; inline
@@ -103,24 +101,11 @@ GENERIC: write-response-body ( response -- )
 
 M: f write-response-body drop ;
 
-M: stream-body write-response-body
-    >stream-body<
-    [ [ write ] when* ]
-    [ [ call( -- stream-body/f ) write-response-body ] when* ] bi* ;
-
 M: string write-response-body write ;
 
 M: xml write-response-body write-xml ;
 
 M: callable write-response-body call( -- ) ;
-
-: write-body ( response -- )
-    [  ] [ body>> ] bi
-    [
-        swap headers>> "Content-Length" swap at
-        [ write-response-body ]
-        [ '[ _ write-response-body ] with-chunked-output ] if
-    ] [ drop ] if* flush ; inline
 
 PRIVATE>
 
@@ -130,5 +115,5 @@ PRIVATE>
     write-response-header
     swap method>> "HEAD" = [ drop ] [
         [ content-encoding>> encode-output ]
-        [ write-body ] bi
+        [ body>> write-response-body flush ] bi
     ] if ;

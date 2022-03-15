@@ -4,7 +4,7 @@ http.machine.data http.machine.resource http.machine.util.byte-ranges io
 io.encodings.binary io.files io.files.info
 io.files.types io.pathnames io.streams.limited kernel literals
 locals math math.parser mime.types namespaces sequences strings
-uuid ;
+uuid tools.hexdump ;
 FROM: ascii => >lower ;
 IN: http.machine.resource.static
 
@@ -31,8 +31,7 @@ M: static-file-resource copy-range ( byte-range resource -- )
     [partial-copy] with-file-reader ;
 
 : copy-file ( resource -- )
-    entry>> path>> binary 
-    [ [ write ] each-block ] with-file-reader ; inline
+    entry>> path>> binary [ [ write ] each-block ] with-file-reader ; inline
 
 M: static-file-resource ranges-satified? ( ranges resource -- ranges/f )
     entry>> info>> size>> '[ _ swap end>> >= ] dupd all? [  ] [ drop f ] if ;
@@ -41,7 +40,7 @@ M: static-file-resource content-size ( resource -- size )
     entry>> info>> size>> ;
 
 : set-file-info ( entry path -- entry )
-    dup exists? [
+    dup file-exists? [
         file-info [ >>info ]
         [ type>> +directory+ = >>directory? ] bi
     ] [ drop ] if ;
@@ -66,10 +65,10 @@ M: static-file-resource init-resource ( resource -- resource )
     response binary >>content-encoding drop ;
 
 M: static-file-resource resource-exists?
-    entry>> path>> { [ exists? ] [ file-info type>> +directory+ = not ] } 1&& ;
+    entry>> path>> { [ file-exists? ] [ file-info type>> +directory+ = not ] } 1&& ;
 
 M: static-file-resource previously-existed?
-    entry>> path>> { [ exists? ] [ file-info type>> +directory+ = ] } 1&& ;
+    entry>> path>> { [ file-exists? ] [ file-info type>> +directory+ = ] } 1&& ;
 
 M: static-file-resource allowed-methods drop { "HEAD" "GET" } ;
 
@@ -83,13 +82,13 @@ M: static-file-resource last-modified entry>> info>> modified>> ;
 
 M: static-file-resource generate-etag
     entry>> info>> [ modified>> ] [ size>> ] bi
-    "%s-%s" sprintf sha1 checksum-bytes hex-string ;
+    "%s-%s" sprintf sha1 checksum-bytes bytes>hex-string ;
 
 M: static-file-resource moved-permanently?
     dup entry>> directory?>> [ [ request url>> path>> ] dip index-page>> append-path  ] [ drop f ] if ;
 
 M: static-file-resource finish-request
     "bytes" "Accept-Ranges" set-response-header
-    "range-request" tx-metadata [
-        drop response 206 >>code drop
-    ] [ entry>> [ [ response ] dip info>> size>> >>size drop ] when* ] if ;
+    "range-request" tx-metadata 
+    [ [ response ] dip ranges-size >>size 206 >>code 2drop ]
+    [ entry>> [ [ response ] dip info>> size>> >>size drop ] when* ] if* ;

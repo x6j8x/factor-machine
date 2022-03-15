@@ -1,4 +1,4 @@
-USING: accessors arrays assocs calendar calendar.format
+USING: accessors arrays assocs calendar calendar.parser calendar.format
 combinators combinators.short-circuit continuations formatting
 fry hashtables http.machine.data http.machine.mime
 http.machine.resource http.machine.response http.machine.states

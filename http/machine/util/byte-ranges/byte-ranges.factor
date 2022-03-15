@@ -13,6 +13,9 @@ TUPLE: byte-range start end ;
 : <byte-range> ( start end -- byte-range )
     byte-range boa ;
 
+: byte-range-size ( range -- size )
+    [ end>> ] [ start>> ] bi - ;
+
 <PRIVATE 
 
 !      ranges-specifier = byte-ranges-specifier
@@ -132,6 +135,9 @@ PRIVATE>
 : range-request? ( size -- ranges/f )
     "range" request-header [ byte-ranges ] [ drop f ] if* ;
 
+: ranges-size ( ranges -- size )
+    0 [ byte-range-size + ] reduce ;
+
 GENERIC: ranges-satified? ( ranges resource -- ranges/f )
 
 GENERIC: copy-range ( byte-range object -- )
@@ -191,7 +197,7 @@ PRIVATE>
 : [range-request-handler] ( ranges resource -- quot/f )
     2dup ranges-satified?
     [
-        t "range-request" set-tx-metadata
+        over "range-request" set-tx-metadata
         [ ?multipart ]
         [ '[ [ _ _ copy-ranges ] ] ] 2bi
     ] [ 2drop response 416 >>code drop f ] if ; inline

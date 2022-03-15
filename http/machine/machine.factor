@@ -4,6 +4,7 @@ http.parsers io io.crlf io.encodings io.encodings.utf8
 io.servers kernel math namespaces parser present
 sequences strings urls vectors vocabs.refresh words.symbol
 xml.data xml.writer destructors fry html.streams io.ports
+io.sockets
 http.machine.data
 http.machine.dispatch
 http.machine.flow
@@ -11,8 +12,7 @@ http.machine.mime
 http.machine.resource
 http.machine.request
 http.machine.response 
-http.machine.states
-http.machine.stream ;
+http.machine.states ;
 FROM: http => read-header parse-cookie unparse-set-cookie write-header ;
 FROM: debugger => print-error :c ;
 FROM: html => simple-page ;
@@ -57,7 +57,7 @@ TUPLE: machine-server < threaded-server dispatcher ;
 
 : ?refresh-all ( -- )
     machine-development? get-global
-    [ global [ refresh-all ] bind ] when ; inline
+    [ [ refresh-all ] with-global ] when ; inline
 
 : with-tx ( ..a quot -- ..b keep-alive? )
     [ <machine-transaction> machine-transaction ] dip
