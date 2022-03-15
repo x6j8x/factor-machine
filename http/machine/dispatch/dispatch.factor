@@ -62,6 +62,9 @@ TUPLE: dispatch-tree value children ;
 : find-host-entry ( request dispatcher -- dispatch-tree )
     hosts>> { [ [ host>> ] [ ] bi* at ] [ [ drop "*" ] [ ] bi* at ] } 2|| ;
 
+: 2unclip-slice ( seq1 seq2 -- rest-slice1 rest-slice2 first1 first2 )
+    [ unclip-slice ] bi@ swapd ; inline
+
 : create-bindings ( rest bindings assoc -- rest' assoc )
     2over { [ nip { [ empty? not ] [ "*" = not ] } 1&& ] [ drop empty? not ] } 2&&
     [
@@ -75,6 +78,7 @@ TUPLE: dispatch-tree value children ;
 
 : locate-matching-rule ( request tree -- rest rule )
     [ url>> path>> "/" split rest-slice ] [ ] bi* traverse-tree ;
+
 
 PRIVATE>
 
